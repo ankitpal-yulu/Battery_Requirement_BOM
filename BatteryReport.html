@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battery Count Report</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+.app{max-width:700px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.header h1{font-size:17px;font-weight:600}
+.header .sub{font-size:11px;color:#666;margin-top:2px}
+.pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.pill.open{background:#e1f5ee;color:#085041}
+.pill.closed{background:#faeeda;color:#854f0b}
+.tabs{display:flex;border-bottom:1px solid #e0e0e0;background:#fff;border-radius:10px 10px 0 0;padding:0 4px;overflow-x:auto}
+.tab-btn{background:none;border:none;padding:10px 13px;font-size:13px;color:#666;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0}
+.tab-btn.active{color:#0f6e56;border-bottom:2px solid #1d9e75;font-weight:500}
+.pane{background:#fff;border-radius:0 0 10px 10px;padding:16px;border:1px solid #e0e0e0;border-top:none}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:12px;color:#555}
+.field select,.field input{padding:9px 11px;border:1px solid #d0d0d0;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;outline:none;width:100%}
+.field select:focus,.field input:focus{border-color:#1d9e75;box-shadow:0 0 0 3px rgba(29,158,117,.1)}
+.field select:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{width:100%;padding:11px;background:#1d9e75;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-primary:hover{background:#0f6e56}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-outline{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid #d0d0d0;border-radius:8px;background:#fff;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-outline:hover{background:#f5f5f5}
+.btn-outline.green{border-color:#1d9e75;color:#0f6e56}
+.btn-outline.green:hover{background:#e1f5ee}
+.banner{padding:11px 13px;border-radius:8px;font-size:13px;margin-bottom:12px}
+.banner.ok{background:#e1f5ee;border:1px solid #5dcaa5;color:#085041;display:flex;align-items:center;gap:8px}
+.banner.warn{background:#faeeda;border:1px solid #fac775;color:#854f0b}
+.banner.info{background:#e8f0fe;border:1px solid #93b4f5;color:#1a56db}
+.banner.err{background:#fcebeb;border:1px solid #f09595;color:#a32d2d}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat{background:#f9f9f9;border-radius:8px;padding:11px;text-align:center;border:1px solid #ebebeb}
+.stat .n{font-size:22px;font-weight:600}
+.stat .l{font-size:11px;color:#666;margin-top:1px}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:12px}
+.card-head{padding:9px 13px;background:#f9f9f9;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between}
+.card-head p{font-size:12px;font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:7px 9px;text-align:left;font-weight:500;font-size:11px;color:#666;border-bottom:1px solid #e0e0e0;background:#f9f9f9;white-space:nowrap}
+td{padding:7px 9px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.alert-row td{background:#fff4f4}
+.chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.chip.g{background:#eaf3de;color:#3b6d11}
+.chip.b{background:#fcebeb;color:#a32d2d}
+.badge{display:inline-block;padding:2px 7px;background:#e8f0fe;color:#1a56db;border-radius:4px;font-size:11px}
+.flex-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.txt-btn{background:none;border:none;font-size:11px;color:#888;cursor:pointer;padding:5px 8px;border-radius:6px;font-family:inherit}
+.txt-btn:hover{background:#f0f0f0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gap-alert{color:#a32d2d;font-weight:700}
+.gap-warn{color:#854f0b}
+.gap-ok{color:#3b6d11}
+.req-inp{width:65px;padding:4px 7px;font-size:12px;text-align:center;border:1px solid #d0d0d0;border-radius:6px;font-family:inherit}
+.req-inp:focus{outline:none;border-color:#1d9e75}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:12px}
+.req-row{display:flex;align-items:center;justify-content:space-between;background:#f9f9f9;padding:6px 9px;border-radius:7px}
+.pin-box{max-width:280px;margin:2rem auto;text-align:center;background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:24px}
+.pin-box h3{font-size:15px;font-weight:600;margin-top:10px}
+.pin-inp{text-align:center;font-size:20px;letter-spacing:8px;font-weight:600;max-width:150px;margin:12px auto 0;padding:9px 11px;border:1px solid #d0d0d0;border-radius:8px;width:100%;font-family:inherit}
+.pin-inp::placeholder{letter-spacing:2px;font-size:13px;font-weight:400}
+.shake{animation:shake .35s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.yc-table-wrap{border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:14px}
+.yc-table-head{background:#f0f7ff;padding:10px 14px;border-bottom:1px solid #d8eaff;display:flex;align-items:center;gap:8px}
+.yc-table-head .cname{font-size:13px;font-weight:600;color:#1a56db}
+.yc-table-head .csub{font-size:11px;color:#666}
+.yc-entry-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
+.yc-entry-row:last-child{border-bottom:none}
+.yc-entry-row:nth-child(even){background:#fafafa}
+.yc-label{flex:1;font-size:13px;font-weight:500;min-width:110px}
+.yc-inp-wrap{display:flex;align-items:center;gap:6px}
+.yc-inp-label{font-size:11px;color:#666;white-space:nowrap}
+.yc-inp{width:80px;padding:7px 9px;border:1px solid #d0d0d0;border-radius:7px;font-size:13px;font-family:inherit;text-align:center;outline:none}
+.yc-inp:focus{border-color:#1d9e75;box-shadow:0 0 0 2px rgba(29,158,117,.1)}
+.yc-inp.error{border-color:#e74c3c;background:#fff8f8}
+.cluster-block{border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;margin-bottom:12px}
+.cluster-block-head{background:#f0f7ff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d8eaff}
+.cname{font-size:13px;font-weight:600;color:#1a56db}
+.yc-count{font-size:11px;color:#666;margin-left:6px}
+.yc-list{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.yc-item{display:flex;align-items:center;justify-content:space-between;background:#f9f9f9;padding:7px 10px;border-radius:7px;border:1px solid #ebebeb}
+.yc-del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:2px 6px;border-radius:4px}
+.yc-del-btn:hover{color:#e74c3c;background:#fff0ef}
+.add-yc-row{display:flex;gap:7px;padding:10px 12px;border-top:1px solid #f0f0f0;background:#fafafa}
+.add-yc-inp{flex:1;padding:7px 10px;border:1px solid #d0d0d0;border-radius:7px;font-size:13px;font-family:inherit;outline:none}
+.add-yc-inp:focus{border-color:#1d9e75}
+.add-yc-btn{padding:7px 14px;background:#1d9e75;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.add-yc-btn:hover{background:#0f6e56}
+.add-cluster-inp{flex:1;padding:9px 11px;border:1px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+.add-cluster-inp:focus{border-color:#1d9e75}
+.pin-change-box{background:#f9f9f9;border-radius:8px;padding:12px;margin-bottom:12px}
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px}
+.spinner{width:36px;height:36px;border:3px solid #e0e0e0;border-top:3px solid #1d9e75;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <p style="font-size:13px;color:#666">Connecting to server...</p>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>Battery Count Report</h1>
+      <div class="sub" id="clock">Loading...</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="pill" id="status-pill">–</div>
+      <button id="admin-tap-btn" onclick="adminTap()" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:11px;color:transparent;user-select:none">⚙</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-submit" onclick="goTab('submit')">📤 Submit</button>
+    <button class="tab-btn" id="tab-gap"    onclick="goTab('gap')"    style="display:none">📊 Stock Gap</button>
+    <button class="tab-btn" id="tab-data"   onclick="goTab('data')"   style="display:none">📋 View Data</button>
+    <button class="tab-btn" id="tab-manage" onclick="goTab('manage')" style="display:none">⚙️ Manage</button>
+  </div>
+
+  <!-- SUBMIT -->
+  <div class="pane" id="pane-submit">
+    <div class="banner warn" id="closed-msg" style="display:none">🔒 <strong>Form is closed.</strong> Open daily <span id="timing-display">4:00 PM – 9:00 PM</span> IST.</div>
+    <div class="banner ok" id="ok-msg" style="display:none">✅ <strong>Submitted!</strong> All YC counts saved to Google Sheet.</div>
+    <div class="banner err" id="err-msg" style="display:none">❌ Submission failed. Check your connection and try again.</div>
+    <div id="form-body">
+      <div class="field"><label>Cluster Name *</label>
+        <select id="sc" onchange="onClusterChange()"><option value="">— Select your cluster —</option></select>
+      </div>
+      <div id="yc-entry-section" style="display:none">
+        <div class="yc-table-wrap">
+          <div class="yc-table-head">
+            <span class="cname" id="yc-cluster-label"></span>
+            <span class="csub" id="yc-cluster-sub"></span>
+          </div>
+          <div id="yc-entry-rows"></div>
+        </div>
+        <div id="submit-err" class="banner err" style="display:none">⚠️ Please fill in all Good and Faulty counts.</div>
+        <button class="btn-primary" id="submit-btn" onclick="doSubmit()">✅ Submit All Counts</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN GATE -->
+  <div class="pane" id="pin-gate" style="display:none">
+    <div class="pin-box">
+      <div style="font-size:28px">🔒</div>
+      <h3>Admin access only</h3>
+      <p style="font-size:12px;color:#666;margin-top:5px">Enter your PIN to continue</p>
+      <input type="password" class="pin-inp" id="pin-inp" maxlength="6" placeholder="PIN" onkeydown="if(event.key==='Enter')doPin()">
+      <div id="pin-err" style="font-size:12px;color:#a32d2d;margin-top:6px;min-height:16px"></div>
+      <button class="btn-primary" style="margin-top:12px" onclick="doPin()">Unlock</button>
+    </div>
+  </div>
+
+  <!-- STOCK GAP -->
+  <div class="pane" id="pane-gap" style="display:none">
+    <div class="flex-bar">
+      <button class="btn-outline green" onclick="loadEntries().then(renderGap)" style="font-size:12px">🔄 Refresh</button>
+      <button class="btn-outline" onclick="toggleReq()">⚙️ Edit Requirements</button>
+      <button class="btn-outline" onclick="doLock()" style="margin-left:auto">🔒 Lock</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sg-tot">0</div><div class="l">YCs tracked</div></div>
+      <div class="stat"><div class="n" id="sg-alert" style="color:#a32d2d">0</div><div class="l">Gap alerts (&gt;10)</div></div>
+      <div class="stat"><div class="n" id="sg-ok" style="color:#1d9e75">0</div><div class="l">Within target</div></div>
+    </div>
+    <div class="card" id="req-panel" style="display:none">
+      <div class="card-head"><p>Daily requirement — Good Battery per YC</p><button class="btn-outline green" onclick="saveReq()">✓ Save</button></div>
+      <div class="req-grid" id="req-fields"></div>
+      <div id="req-msg" style="padding:0 12px 10px;font-size:12px;color:#0f6e56;min-height:16px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><p>Latest stock vs daily requirement</p><span style="font-size:10px;color:#888">Gap = Requirement − Available Good</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Cluster</th><th>YC Name</th>
+            <th style="text-align:center">Req.<br><small style="opacity:.7;font-weight:400">Good</small></th>
+            <th style="text-align:center">Avail.<br><small style="opacity:.7;font-weight:400">Good</small></th>
+            <th style="text-align:center">Avail.<br><small style="opacity:.7;font-weight:400">Faulty</small></th>
+            <th style="text-align:center">Gap</th>
+          </tr></thead>
+          <tbody id="gap-tbody"></tbody>
+        </table>
+        <div id="gap-empty" class="banner info" style="display:none;margin:12px">No submissions yet.</div>
+      </div>
+    </div>
+    <p style="font-size:10px;color:#888;margin-top:-4px">🔴 Red = gap &gt; 10 · — = no submission yet</p>
+  </div>
+
+  <!-- VIEW DATA -->
+  <div class="pane" id="pane-data" style="display:none">
+    <div class="flex-bar">
+      <button class="btn-outline green" onclick="loadEntries().then(renderData)" style="font-size:12px">🔄 Refresh</button>
+      <button class="btn-outline" onclick="doExport()">⬇ Export CSV</button>
+      <button class="btn-outline" style="margin-left:auto" onclick="togglePinChange()">🔑 Change PIN</button>
+      <button class="txt-btn" onclick="doLock()">🔒 Lock</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="vd-tot">0</div><div class="l">Total entries</div></div>
+      <div class="stat"><div class="n" id="vd-good" style="color:#1d9e75">0</div><div class="l">Good batteries</div></div>
+      <div class="stat"><div class="n" id="vd-fault" style="color:#a32d2d">0</div><div class="l">Faulty batteries</div></div>
+    </div>
+    <div class="pin-change-box" id="pin-change-panel" style="display:none">
+      <p style="font-size:12px;font-weight:600;margin-bottom:8px">Change PIN</p>
+      <div class="grid2">
+        <div class="field"><label>New PIN</label><input type="password" id="np" maxlength="6" placeholder="Min 4 chars"></div>
+        <div class="field"><label>Confirm PIN</label><input type="password" id="cp" maxlength="6" placeholder="Re-enter"></div>
+      </div>
+      <div id="pcmsg" style="font-size:11px;min-height:14px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:7px">
+        <button class="btn-outline green" onclick="savePIN()">✓ Save PIN</button>
+        <button class="btn-outline" onclick="togglePinChange()">Cancel</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><p>Submission log — all staff</p></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Timestamp</th><th>Cluster</th><th>YC Name</th><th style="text-align:center">Good</th><th style="text-align:center">Faulty</th></tr></thead>
+          <tbody id="data-tbody"></tbody>
+        </table>
+        <div id="data-empty" style="text-align:center;padding:2rem;font-size:13px;color:#888;display:none">No entries yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANAGE -->
+  <div class="pane" id="pane-manage" style="display:none">
+    <div style="margin-bottom:14px">
+      <p style="font-size:13px;font-weight:600;margin-bottom:4px">Cluster–YC Mappings</p>
+      <p style="font-size:12px;color:#666">Changes reflect instantly in the Submit form.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><p>⏰ Response Timing (IST)</p></div>
+      <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Open time</label><input type="time" id="timing-open"></div>
+        <div class="field"><label>Close time</label><input type="time" id="timing-close"></div>
+      </div>
+      <div style="padding:0 14px 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span id="timing-preview" style="font-size:12px;color:#666"></span>
+        <button class="btn-outline green" onclick="saveTiming()">✓ Save Timing</button>
+      </div>
+      <div id="timing-msg" style="padding:6px 14px 12px;font-size:12px;min-height:18px;color:#0f6e56"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><p>➕ Add a new cluster</p></div>
+      <div style="padding:12px;display:flex;gap:8px">
+        <input type="text" class="add-cluster-inp" id="new-cluster-name" placeholder="e.g. Vasai" onkeydown="if(event.key==='Enter')addCluster()">
+        <button class="add-yc-btn" onclick="addCluster()">Add Cluster</button>
+      </div>
+      <div id="cluster-add-msg" style="padding:0 12px 10px;font-size:12px;min-height:16px"></div>
+    </div>
+    <div class="flex-bar"><button class="btn-outline" onclick="doLock()">🔒 Lock</button></div>
+    <div id="mapping-blocks"></div>
+  </div>
+
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwLeHr8OwooCWZzzvGywq2DpzFFa6TlnDPZfP35XjVkpwPXiR4TE5Hv_abcWnDm2w/exec';
+const DEFAULT_CLUSTERS={'Andheri':['Andheri Workshop','Andheri East','Goregaon','Vile Parle'],'BKC':['Kalina','Bandra','Sakinaka','Powai'],'Chembur':['Chembur Workshop','Sindhi Society','Dadar Podium','Mumbai Central'],'Malad':['Charkop','Kandivali','Kanchpada','Mira Road'],'Navi Mumbai':['Turbhe','Koparkhairane'],'Thane':['Thane Workshop']};
+
+let entries=[],reqs={},clusters={},pin='0000',unlocked=false,curTab='submit',openMin=960,closeMin=1260;
+let adminTapCount=0,adminTapTimer=null;
+const $=id=>document.getElementById(id);
+const rkey=(c,y)=>c+'||'+y;
+
+// ── API calls ────────────────────────────────────────────────
+async function loadEntries(){
+  try{
+    const res=await fetch(API);
+    const data=await res.json();
+    if(data.status==='ok') entries=data.rows.map(r=>({
+      timestamp:r.timestamp,cluster:r.cluster,ycName:r.ycName,
+      good:Number(r.good),faulty:Number(r.faulty)
+    }));
+  }catch(e){console.error('Load error',e);}
+  return entries;
+}
+
+async function saveToSheet(rows){
+  const res=await fetch(API,{
+    method:'POST',
+    body:JSON.stringify({rows}),
+    headers:{'Content-Type':'application/json'}
+  });
+  const data=await res.json();
+  if(data.status!=='ok') throw new Error(data.message||'Save failed');
+}
+
+// ── Secret admin tap ─────────────────────────────────────────
+function adminTap(){
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  adminTapTimer=setTimeout(()=>adminTapCount=0,2000);
+  if(adminTapCount>=5){
+    adminTapCount=0;
+    ['tab-gap','tab-data','tab-manage'].forEach(id=>{const el=$(id);if(el)el.style.display='';});
+    goTab('gap');
+  }
+}
+
+// ── Time ─────────────────────────────────────────────────────
+function getIST(){const n=new Date();return new Date(n.getTime()+n.getTimezoneOffset()*60000+19800000);}
+function isOpen(){const t=getIST(),tot=t.getHours()*60+t.getMinutes();return tot>=openMin&&tot<closeMin;}
+function minsToTime(m){const h=Math.floor(m/60),mn=m%60,ap=h>=12?'PM':'AM',hh=h%12||12,mm=String(mn).padStart(2,'0');return `${hh}:${mm} ${ap}`;}
+function timeToMins(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+function minsTo24(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+
+function updateTimingDisplay(){
+  const disp=`${minsToTime(openMin)} – ${minsToTime(closeMin)}`;
+  const el=$('timing-display');if(el)el.textContent=disp;
+  const prev=$('timing-preview');if(prev)prev.textContent=`Current: ${disp} IST`;
+  const oi=$('timing-open'),ci=$('timing-close');
+  if(oi)oi.value=minsTo24(openMin);if(ci)ci.value=minsTo24(closeMin);
+}
+function saveTiming(){
+  const ov=$('timing-open').value,cv=$('timing-close').value;
+  if(!ov||!cv){$('timing-msg').style.color='#a32d2d';$('timing-msg').textContent='Set both times.';return;}
+  const om=timeToMins(ov),cm=timeToMins(cv);
+  if(om>=cm){$('timing-msg').style.color='#a32d2d';$('timing-msg').textContent='Close must be after open.';setTimeout(()=>$('timing-msg').textContent='',3000);return;}
+  openMin=om;closeMin=cm;
+  localStorage.setItem('form-timing',JSON.stringify({openMin,closeMin}));
+  updateTimingDisplay();
+  $('timing-msg').style.color='#0f6e56';$('timing-msg').textContent=`✓ Saved: ${minsToTime(openMin)} – ${minsToTime(closeMin)} IST`;
+  setTimeout(()=>$('timing-msg').textContent='',3000);tick();
+}
+function tick(){
+  const t=getIST(),h=t.getHours(),m=t.getMinutes(),ap=h>=12?'PM':'AM',hh=h%12||12,mm=String(m).padStart(2,'0');
+  $('clock').textContent=`${hh}:${mm} ${ap} IST · ${t.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}`;
+  const op=isOpen();
+  $('status-pill').textContent=op?'Open':'Closed';
+  $('status-pill').className='pill '+(op?'open':'closed');
+  $('closed-msg').style.display=op?'none':'block';
+  updateTimingDisplay();
+  $('form-body').style.opacity=op?'1':'0.4';
+  $('form-body').style.pointerEvents=op?'auto':'none';
+}
+
+// ── Submit form ───────────────────────────────────────────────
+function populateClusterDropdown(){
+  const sel=$('sc'),prev=sel.value;
+  sel.innerHTML='<option value="">— Select your cluster —</option>';
+  Object.keys(clusters).forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;if(c===prev)o.selected=true;sel.appendChild(o);});
+  if(!clusters[prev])resetYCSection();
+}
+function onClusterChange(){
+  const c=$('sc').value;
+  if(!c||!clusters[c]||!clusters[c].length){resetYCSection();return;}
+  buildYCEntryRows(c);
+}
+function resetYCSection(){$('yc-entry-section').style.display='none';$('yc-entry-rows').innerHTML='';}
+function buildYCEntryRows(cluster){
+  const ycList=clusters[cluster];
+  $('yc-cluster-label').textContent=cluster;
+  $('yc-cluster-sub').textContent=`— ${ycList.length} YC centre${ycList.length!==1?'s':''}`;
+  $('submit-err').style.display='none';
+  $('yc-entry-rows').innerHTML=ycList.map((yc,i)=>`
+    <div class="yc-entry-row">
+      <div class="yc-label">${yc}</div>
+      <div class="yc-inp-wrap"><span class="yc-inp-label">🔋 Good</span><input type="number" class="yc-inp" id="good-${i}" min="0" placeholder="0" oninput="clearErr()" onkeydown="moveNext(event,${i},'good',${ycList.length})"></div>
+      <div class="yc-inp-wrap"><span class="yc-inp-label">🪫 Faulty</span><input type="number" class="yc-inp" id="faulty-${i}" min="0" placeholder="0" oninput="clearErr()" onkeydown="moveNext(event,${i},'faulty',${ycList.length})"></div>
+    </div>`).join('');
+  $('yc-entry-section').style.display='block';
+  setTimeout(()=>{const f=$('good-0');if(f)f.focus();},50);
+}
+function moveNext(e,idx,type,total){
+  if(e.key!=='Enter')return;e.preventDefault();
+  if(type==='good'){const n=$('faulty-'+idx);if(n)n.focus();}
+  else{const n=$('good-'+(idx+1));if(n)n.focus();}
+}
+function clearErr(){$('submit-err').style.display='none';document.querySelectorAll('.yc-inp.error').forEach(el=>el.classList.remove('error'));}
+
+async function doSubmit(){
+  const cluster=$('sc').value;
+  if(!cluster){alert('Select a cluster.');return;}
+  const ycList=clusters[cluster];
+  let valid=true;const rows=[];
+  ycList.forEach((yc,i)=>{
+    const gEl=$('good-'+i),fEl=$('faulty-'+i);
+    const g=gEl?gEl.value.trim():'',f=fEl?fEl.value.trim():'';
+    if(g===''||f===''){valid=false;if(gEl&&g==='')gEl.classList.add('error');if(fEl&&f==='')fEl.classList.add('error');}
+    else rows.push({yc,good:+g,faulty:+f});
+  });
+  if(!valid||rows.length!==ycList.length){$('submit-err').style.display='block';return;}
+
+  const t=getIST();
+  const ts=t.toLocaleString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+  const payload=rows.map(r=>({timestamp:ts,cluster,ycName:r.yc,good:r.good,faulty:r.faulty}));
+
+  const btn=$('submit-btn');
+  btn.disabled=true;btn.textContent='Saving...';
+  $('err-msg').style.display='none';
+
+  try{
+    await saveToSheet(payload);
+    $('sc').value='';resetYCSection();
+    $('ok-msg').style.display='flex';setTimeout(()=>$('ok-msg').style.display='none',4000);
+    // also cache locally
+    entries=[...payload,...entries];
+  }catch(e){
+    $('err-msg').style.display='block';
+  }
+  btn.disabled=false;btn.textContent='✅ Submit All Counts';
+}
+
+// ── PIN ──────────────────────────────────────────────────────
+function doPin(){
+  const v=$('pin-inp').value,e=$('pin-err');
+  if(v===pin){
+    unlocked=true;$('pin-gate').style.display='none';
+    if(curTab==='gap'){$('pane-gap').style.display='block';loadEntries().then(renderGap);}
+    else if(curTab==='data'){$('pane-data').style.display='block';loadEntries().then(renderData);}
+    else if(curTab==='manage'){$('pane-manage').style.display='block';renderMappings();}
+  }else{
+    e.textContent='Incorrect PIN.';
+    const inp=$('pin-inp');inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake');
+    inp.value='';setTimeout(()=>e.textContent='',2000);
+  }
+}
+function doLock(){
+  unlocked=false;
+  ['pane-gap','pane-data','pane-manage','pin-gate'].forEach(id=>$(id).style.display='none');
+  ['tab-gap','tab-data','tab-manage'].forEach(id=>$(id).style.display='none');
+  $('pin-inp').value='';$('pin-err').textContent='';
+  $('req-panel').style.display='none';$('pin-change-panel').style.display='none';
+  goTab('submit');
+}
+
+// ── Requirements ─────────────────────────────────────────────
+function toggleReq(){const p=$('req-panel'),show=p.style.display==='none';p.style.display=show?'block':'none';if(show)buildReqFields();}
+function buildReqFields(){
+  let h='';
+  Object.keys(clusters).forEach(c=>clusters[c].forEach(y=>{
+    const k=rkey(c,y),val=reqs[k]||0,id='r_'+k.replace(/[\|\s]/g,'_');
+    h+=`<div class="req-row"><span style="font-size:11px">${y} <span style="color:#888">(${c})</span></span><input type="number" class="req-inp" id="${id}" value="${val}" min="0"></div>`;
+  }));
+  $('req-fields').innerHTML=h||'<p style="font-size:12px;color:#aaa;padding:4px">No YCs.</p>';
+}
+function saveReq(){
+  Object.keys(clusters).forEach(c=>clusters[c].forEach(y=>{
+    const k=rkey(c,y),el=$('r_'+k.replace(/[\|\s]/g,'_'));if(el)reqs[k]=+el.value||0;
+  }));
+  localStorage.setItem('battery-requirements',JSON.stringify(reqs));
+  $('req-msg').textContent='Saved!';setTimeout(()=>$('req-msg').textContent='',2000);renderGap();
+}
+
+// ── Stock Gap ────────────────────────────────────────────────
+function latestPerYC(){const m={};entries.forEach(e=>{const k=rkey(e.cluster,e.ycName);if(!m[k])m[k]=e;});return m;}
+function renderGap(){
+  const lp=latestPerYC();let rows='',tot=0,alerts=0,ok=0;
+  Object.keys(clusters).forEach(c=>clusters[c].forEach(y=>{
+    const k=rkey(c,y),e=lp[k],req=reqs[k]||0;tot++;
+    if(!e){rows+=`<tr><td><span class="badge">${c}</span></td><td style="font-size:11px">${y}</td><td style="text-align:center"><span class="chip g">${req}</span></td><td style="text-align:center;color:#aaa">—</td><td style="text-align:center;color:#aaa">—</td><td style="text-align:center;color:#aaa">—</td></tr>`;}
+    else{
+      const gap=req-e.good,isAlert=gap>10;
+      if(isAlert)alerts++;else ok++;
+      const gc=isAlert?`<strong class="gap-alert">▲ ${gap}</strong>`:gap>0?`<span class="gap-warn">${gap}</span>`:`<span class="gap-ok">${gap}</span>`;
+      rows+=`<tr${isAlert?' class="alert-row"':''}><td><span class="badge">${c}</span></td><td style="font-size:11px">${y}</td><td style="text-align:center"><span class="chip g">${req}</span></td><td style="text-align:center"><span class="chip g">${e.good}</span></td><td style="text-align:center"><span class="chip b">${e.faulty}</span></td><td style="text-align:center">${gc}</td></tr>`;
+    }
+  }));
+  $('sg-tot').textContent=tot;$('sg-alert').textContent=alerts;$('sg-ok').textContent=ok;
+  if(!Object.keys(lp).length){$('gap-tbody').innerHTML='';$('gap-empty').style.display='block';}
+  else{$('gap-empty').style.display='none';$('gap-tbody').innerHTML=rows;}
+}
+
+// ── View Data ────────────────────────────────────────────────
+function renderData(){
+  const tb=$('data-tbody'),em=$('data-empty');
+  $('vd-tot').textContent=entries.length;
+  $('vd-good').textContent=entries.reduce((s,e)=>s+e.good,0);
+  $('vd-fault').textContent=entries.reduce((s,e)=>s+e.faulty,0);
+  if(!entries.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=entries.map(e=>`<tr><td style="font-size:10px;color:#888">${e.timestamp}</td><td><span class="badge">${e.cluster}</span></td><td style="font-size:11px">${e.ycName}</td><td style="text-align:center"><span class="chip g">${e.good}</span></td><td style="text-align:center"><span class="chip b">${e.faulty}</span></td></tr>`).join('');
+}
+function doExport(){
+  if(!entries.length){alert('No data.');return;}
+  const csv=['Timestamp,Cluster Name,YC Name,Good Battery Count,Faulty Battery Count',...entries.map(e=>`"${e.timestamp}","${e.cluster}","${e.ycName}",${e.good},${e.faulty}`)].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  const t=getIST(),ds=t.getFullYear()+String(t.getMonth()+1).padStart(2,'0')+String(t.getDate()).padStart(2,'0');
+  a.href=url;a.download=`battery_report_${ds}.csv`;a.click();URL.revokeObjectURL(url);
+}
+function togglePinChange(){const p=$('pin-change-panel');p.style.display=p.style.display==='none'?'block':'none';$('np').value='';$('cp').value='';$('pcmsg').textContent='';}
+function savePIN(){
+  const np=$('np').value.trim(),cp=$('cp').value.trim(),m=$('pcmsg');
+  if(np.length<4){m.style.color='#a32d2d';m.textContent='Min 4 characters.';return;}
+  if(np!==cp){m.style.color='#a32d2d';m.textContent='PINs do not match.';return;}
+  pin=np;localStorage.setItem('admin-pin',pin);
+  m.style.color='#0f6e56';m.textContent='PIN updated!';setTimeout(togglePinChange,1500);
+}
+
+// ── Tab navigation ───────────────────────────────────────────
+function goTab(tab){
+  curTab=tab;
+  ['submit','gap','data','manage'].forEach(t=>{
+    const btn=$('tab-'+t);if(btn)btn.className='tab-btn'+(t===tab?' active':'');
+    const pane=$('pane-'+t);if(pane)pane.style.display='none';
+  });
+  $('pin-gate').style.display='none';
+  if(tab==='submit'){$('pane-submit').style.display='block';}
+  else if(!unlocked){$('pin-gate').style.display='block';$('pin-inp').value='';$('pin-err').textContent='';}
+  else if(tab==='gap'){$('pane-gap').style.display='block';loadEntries().then(renderGap);}
+  else if(tab==='data'){$('pane-data').style.display='block';loadEntries().then(renderData);}
+  else if(tab==='manage'){$('pane-manage').style.display='block';renderMappings();}
+}
+
+// ── Manage Mappings ──────────────────────────────────────────
+const slug=s=>s.replace(/[^a-zA-Z0-9]/g,'_');
+const escQ=s=>s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+function renderMappings(){
+  updateTimingDisplay();
+  const c=$('mapping-blocks');
+  if(!Object.keys(clusters).length){c.innerHTML='<div class="banner info">No clusters yet.</div>';return;}
+  c.innerHTML=Object.keys(clusters).map(cl=>`
+    <div class="cluster-block">
+      <div class="cluster-block-head">
+        <div style="display:flex;align-items:center;gap:6px"><span class="cname">${cl}</span><span class="yc-count">${clusters[cl].length} YC${clusters[cl].length!==1?'s':''}</span></div>
+        <button class="yc-del-btn" onclick="deleteCluster('${escQ(cl)}')" style="font-size:12px;color:#c0392b">🗑 Delete</button>
+      </div>
+      <div class="yc-list">
+        ${clusters[cl].length===0?'<p style="font-size:12px;color:#aaa">No YC centres yet.</p>':clusters[cl].map(y=>`<div class="yc-item"><span class="yc-name">${y}</span><button class="yc-del-btn" onclick="removeYC('${escQ(cl)}','${escQ(y)}')">✕</button></div>`).join('')}
+      </div>
+      <div class="add-yc-row">
+        <input type="text" class="add-yc-inp" id="add-yc-${slug(cl)}" placeholder="New YC name..." onkeydown="if(event.key==='Enter')addYC('${escQ(cl)}')">
+        <button class="add-yc-btn" onclick="addYC('${escQ(cl)}')">+ Add YC</button>
+      </div>
+    </div>`).join('');
+}
+function addYC(cluster){
+  const inp=$('add-yc-'+slug(cluster)),name=inp.value.trim();
+  if(!name){inp.focus();return;}
+  if(clusters[cluster].map(y=>y.toLowerCase()).includes(name.toLowerCase())){alert(`"${name}" already exists.`);return;}
+  clusters[cluster].push(name);saveMappings();populateClusterDropdown();renderMappings();
+  setTimeout(()=>{const el=$('add-yc-'+slug(cluster));if(el){el.value='';el.focus();}},50);
+}
+function removeYC(cluster,yc){
+  if(!confirm(`Remove "${yc}" from ${cluster}?`))return;
+  clusters[cluster]=clusters[cluster].filter(y=>y!==yc);saveMappings();populateClusterDropdown();renderMappings();
+}
+function addCluster(){
+  const inp=$('new-cluster-name'),name=inp.value.trim(),msg=$('cluster-add-msg');
+  if(!name){inp.focus();return;}
+  if(clusters[name]!==undefined){msg.style.color='#a32d2d';msg.textContent=`"${name}" already exists.`;setTimeout(()=>msg.textContent='',2500);return;}
+  clusters[name]=[];saveMappings();populateClusterDropdown();
+  inp.value='';msg.style.color='#0f6e56';msg.textContent=`✓ "${name}" added.`;setTimeout(()=>msg.textContent='',3000);renderMappings();
+}
+function deleteCluster(cluster){
+  if(!confirm(`Delete cluster "${cluster}" and all its YCs?`))return;
+  delete clusters[cluster];saveMappings();populateClusterDropdown();renderMappings();
+}
+function saveMappings(){localStorage.setItem('battery-clusters',JSON.stringify(clusters));}
+
+// ── Init ─────────────────────────────────────────────────────
+async function init(){
+  try{const r=localStorage.getItem('battery-clusters');clusters=r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_CLUSTERS));}catch(e){clusters=JSON.parse(JSON.stringify(DEFAULT_CLUSTERS));}
+  try{const r=localStorage.getItem('admin-pin');if(r)pin=r;}catch(e){}
+  try{const r=localStorage.getItem('battery-requirements');if(r)reqs=JSON.parse(r);}catch(e){}
+  try{const r=localStorage.getItem('form-timing');if(r){const t=JSON.parse(r);openMin=t.openMin;closeMin=t.closeMin;}}catch(e){}
+  populateClusterDropdown();
+  tick();setInterval(tick,30000);
+  // load entries from sheet
+  await loadEntries();
+  $('loading-overlay').style.display='none';
+}
+init();
+</script>
+</body>
+</html>
